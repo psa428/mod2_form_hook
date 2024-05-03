@@ -1,5 +1,30 @@
 import './App.css';
 import { useForm } from 'react-hook-form';
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
+import { useRef, useEffect } from 'react';
+
+
+
+const schema = yup.object().shape({
+  email: yup.string()
+    .email('Неправильный адрес электронной почты')
+      
+    .required('Поле обязательно для заполнения'),
+  
+  password: yup.string()
+    .matches (
+      /^\w+[!$~#&]/,
+      'Пароль должен содержать буквы, цифры и спецсимволы'
+    )
+    .min(8, 'Длина пароля не должна быть менее 8 символов'),
+
+  password_repeated: yup.string()
+    .oneOf([yup.ref('password')], "Пароли не совпадают")
+  },
+  
+
+);
 
 const sendFormData = (formData) => {
   console.log(formData);
@@ -10,40 +35,24 @@ function App() {
   const {
     register,
     handleSubmit,
-    watch,
     formState: { errors },
   } = useForm({
       mode: "onBlur",
-      defaultValues: {
-          email: '',
-          password: ''
-      },
+      resolver: yupResolver(schema)   
   });
 
-  const emailProps = {
-    pattern: {
-      value: /^[^@\s]+@[^@\s]+\.[^@\s]+$/,
-      message: "Неверный адрес электронной почты",
-    },
-  };
+  const submitButtonRef = useRef(null);
 
-  const passwordProps = {
-    minLength: {value: 8, message: "Пароль должен быть не менее 8 символов"},
-    pattern: {
-      value: /^\w+[!$~#&]/,
-      message: "Пароль должен содержать буквы, цифры и спецсимволы",
-    },
-  };
+  useEffect(() => {
+    
+    if (!(errors.email || errors.password || errors.password_repeated)) 
+      submitButtonRef.current.focus(); 
+  });
 
-  let passwordError = errors.password?.message; 
-  let emailError = errors.email?.message; 
-  
-  
   return (
     <div className="App">
-      <form onSubmit={handleSubmit(sendFormData)}>
-        
-        
+      <h1>Гаврила был примерным мужем</h1>
+      <form onSubmit={handleSubmit(sendFormData)}>     
         
         <input 
             className='input-field'
@@ -51,39 +60,35 @@ function App() {
             // type="email"
              type='text'
             placeholder="Почта"
-            {...register('email', emailProps)}
-            
+            {...register('email')}   
         />
-        {emailError && <div className="error-msg">{emailError}</div>}
-         <input
+        {errors.email && <div className="error-msg">{errors.email.message}</div>}
+       
+          <input
             className='input-field'
             name="password"
             type="password"
             placeholder="Пароль"
-            {...register('password', passwordProps)}
+            {...register('password')}
             
-        />
-        {passwordError && <div className="error-msg">{passwordError}</div>}
+        /> 
+         {errors.password && <div className="error-msg">{errors.password.message}</div>}
         <input
             className='input-field'
             name="password_repeated"
             type="password"
             placeholder="Повторно введите пароль"
-            {...register("password_repeated", {
-              required: "Please confirm your password",
-              validate: (value) => {
-                return value === watch("password") || "Пароли не совпадают";
-              }
-            })}
-            
+            {...register('password_repeated')}
         />
         {errors.password_repeated && (
           <div className='error-msg'>{errors.password_repeated.message}</div>
-        )}
+        )} 
         <button 
           className="button" 
           type="submit" 
-          disabled={!!(emailError || passwordError || errors.password_repeated)}>Зарегистрироваться </button>
+          ref={submitButtonRef}
+          disabled={!!(errors.email || errors.password || errors.password_repeated)}>Зарегистрироваться </button>
+    
         </form>
     </div>
   );
